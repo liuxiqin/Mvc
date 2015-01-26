@@ -3,19 +3,28 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using Microsoft.AspNet.Mvc.ModelBinding.Internal;
 
 namespace Microsoft.AspNet.Mvc.ModelBinding
 {
-    public class HeaderModelBinder : MetadataAwareBinder<IHeaderBinderMetadata>
+    /// <summary>
+    /// An <see cref="IModelBinder"/> which binds models from the request headers when a model 
+    /// has the binding source <see cref="BindingSource.Header"/>/
+    /// </summary>
+    public class HeaderModelBinder : BindingSourceModelBinder
     {
+        /// <summary>
+        /// Creates a new <see cref="HeaderModelBinder"/>.
+        /// </summary>
+        public HeaderModelBinder()
+            : base(BindingSource.Header)
+        {
+        }
+
         /// <inheritdoc />
-        protected override Task<bool> BindAsync(
-            [NotNull] ModelBindingContext bindingContext, 
-            [NotNull] IHeaderBinderMetadata metadata)
+        protected override Task BindModelCoreAsync([NotNull] ModelBindingContext bindingContext)
         {
             var request = bindingContext.OperationBindingContext.HttpContext.Request;
 
@@ -26,8 +35,6 @@ namespace Microsoft.AspNet.Mvc.ModelBinding
                 {
                     bindingContext.Model = value;
                 }
-
-                return Task.FromResult(true);
             }
             else if (typeof(IEnumerable<string>).GetTypeInfo().IsAssignableFrom(
                 bindingContext.ModelType.GetTypeInfo()))
@@ -35,13 +42,13 @@ namespace Microsoft.AspNet.Mvc.ModelBinding
                 var values = request.Headers.GetCommaSeparatedValues(bindingContext.ModelName);
                 if (values != null)
                 {
-                    bindingContext.Model = ModelBindingHelper.ConvertValuesToCollectionType(bindingContext.ModelType, values);
+                    bindingContext.Model = ModelBindingHelper.ConvertValuesToCollectionType(
+                        bindingContext.ModelType,
+                        values);
                 }
-
-                return Task.FromResult(true);
             }
 
-            return Task.FromResult(false);
+            return Task.FromResult(true);
         }
     }
 }
